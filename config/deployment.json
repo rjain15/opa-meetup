@@ -1,0 +1,55 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/component": "database",
+      "app.kubernetes.io/managed-by": "helm",
+      "app.kubernetes.io/name": "mysql",
+      "app.kubernetes.io/part-of": "wordpress",
+      "app.kubernetes.io/version": "5.7.21"
+    },
+    "name": "hello-kubernetes"
+  },
+  "spec": {
+    "replicas": 3,
+    "securityContext": {
+      "fsGroup": 2000,
+      "runAsGroup": 3000,
+      "runAsNonRoot": true,
+      "runAsUser": 1000
+    },
+    "selector": {
+      "matchLabels": {
+        "app": "hello-kubernetes"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "hello-kubernetes"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "hooli.com/hello-kubernetes:1.5",
+            "name": "hello-kubernetes",
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ],
+            "securityContext": {
+              "allowPrivilegeEscalation": false
+            }
+          },
+          {
+            "image": "mysql",
+            "name": "mysql-backend"
+          }
+        ]
+      }
+    }
+  }
+}
