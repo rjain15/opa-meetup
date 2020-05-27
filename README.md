@@ -65,6 +65,7 @@ ConstraintTemplates are templates of an OPA policy and define the parameters nee
 Once submitted, a ConstraintTemplate creates a Kubernetes custom resource based on the included configuration which is called a Constraint.
 
 `cd kubernetes/validating`
+
 `cat required-labels-template.yaml`
 
 ```yaml
@@ -101,6 +102,7 @@ spec:
 ```
 
 `kubectl apply -f required-labels-template.yaml`
+
 `kubectl get constrainttemplates.templates.gatekeeper.sh`
 
 A Constraint contains the required parameters and what types of Kubernetes events will trigger policy evaluation. Once a Constraint is submitted to the cluster, it creates a unique ValidatingAdmissionWebhook object based on the configuration.
@@ -124,6 +126,7 @@ spec:
 ```
 
 `kubectl apply -f required-labels-constraint.yaml`
+
 `kubectl get requiredlabels.constraints.gatekeeper.sh`
 
 ### Test
