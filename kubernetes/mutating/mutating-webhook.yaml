@@ -1,0 +1,89 @@
+---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: sinatra-mutating-webhook
+      namespace: sinatra-mutating-webhook
+      labels:
+        run: sinatra-mutating-webhook
+    spec:
+      ports:
+      - name: webhook
+        port: 443
+        targetPort: 443
+      selector:
+        run: sinatra-mutating-webhook
+    ---
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    metadata:
+      name: sinatra-mutating-webhook
+      namespace: sinatra-mutating-webhook
+      labels:
+        run: sinatra-mutating-webhook
+    spec:
+      replicas: 1
+      template:
+        metadata:
+          name: sinatra-mutating-webhook
+          labels:
+            run: sinatra-mutating-webhook
+        spec:
+          containers:
+            - name: webhook
+              image: atheiman/sinatra-mutating-webhook
+              imagePullPolicy: Always
+              env:
+              - name: PASSENGER_PORT
+                value: "443"
+              - name: PASSENGER_SSL
+                value: "true"
+              - name: PASSENGER_SSL_CERTIFICATE
+                value: /webhook-ssl/cert.pem
+              - name: PASSENGER_SSL_CERTIFICATE_KEY
+                value: /webhook-ssl/key.pem
+              volumeMounts:
+                - name: webhook-ssl
+                  mountPath: /webhook-ssl
+                  readOnly: true
+              ports:
+                - containerPort: 443
+                  name: webhook
+              livenessProbe:
+                httpGet:
+                  scheme: HTTPS
+                  path: /health
+                  port: webhook
+                initialDelaySeconds: 15
+              readinessProbe:
+                httpGet:
+                  scheme: HTTPS
+                  path: /health
+                  port: webhook
+                initialDelaySeconds: 15
+          volumes:
+            - name: webhook-ssl
+              secret:
+                secretName: sinatra-mutating-webhook
+    ---
+    apiVersion: admissionregistration.k8s.io/v1beta1
+    kind: MutatingWebhookConfiguration
+    metadata:
+      name: sinatra-mutating-webhook
+    webhooks:
+      - name: sinatra-mutating-webhook.example.com
+        clientConfig:
+          service:
+            name: sinatra-mutating-webhook
+            namespace: sinatra-mutating-webhook
+            path: "/fun-label"
+          caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJd01EVXlOekF6TkRBME5sb1hEVE13TURVeU5UQXpOREEwTmxvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBT0FyCmV0NThNUWtIVTFnQmdzYmxPOXpDSmRMV0lxM2d3QncwdVJlVWpIR1NUQWdXbmZDMzJOT0NjTWpFTmVjSWlvRTYKSE9GS3dYMGxRc1A2bWswM3psekU3WENqNzlkcW1kZEhsbXNZUXd1OGsvMFluVDc2bmtnWGE0Y3VsWDZ5M1p2VwpCNE1GcnJWV0NwcUpGOVoyc1Rmb2xvaDduUk4xQUd6MEFhNjhuYnFnay9Ib2pPcFQ1Z3ErRXBZbGluc3A2bUc2CnVxTld0VGFBYlQrcEg4Y2tpYWVuNGpFaEk1WFpOdW0xUFlsRkhGYmFrblo3QXdjb1dTVjE1Z3RJWllUOHYwUmQKckErTUsvSVpYenNjaVFMNlZjSjJwUDlHVDVrQndsOFVnWUNQMFM1ZkdjbHZjaC9OdnArNUdReTAzOVN1WWRvagpSQWQzdkc1ZW84S2J0ZWtKNStzQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFJVUJuOUV2YUkrL0g0bjlxWEVhL3dzaDdLTm0KTVYzeUlFSDI3WXVjUTBRQnUxazIyZnZLZlFBTTV2Y1ROUWlQdnR6NGlRMDFMS0pURVZWeW1zT2FuRFpkWHZqdwp1eVBRQ3cvSUUzSkNmZFdiS2NyTTVkTkVVV1JMMEhPQitUQnBGeGk1b2xQNGFONW5tbmR2NDEzZXhMUnBWVzBpCm1YRFZCV1Zsbm1FK21Mb0VJckpBbllReGZoaHFDT2QydXJGZjNIbERPTVhFUlFmd29FeFM5dkNjYy94bHRTOGgKbWRhS0FXRm5BK2czdG1HR3ZvK1pzVzBxMEc3UUNFNWZPbkM2cDc0T0JhNGFmVWk0SHd0MHF4SENzZERUTEw4eQpYUmswZ1laYWFRbzY0MXNLTFNkbUoxZHRtUGdUZlZDaXBvWVdIVHN1dm9iR2JkaFBkWW9xbEprV0dzRT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+        rules:
+          - operations: ["CREATE","UPDATE"]
+            apiGroups: [""]
+            apiVersions: ["v1"]
+            resources: ["pods"]
+        failurePolicy: Fail
+        namespaceSelector:
+          matchLabels:
+            sinatra-mutating-webhook: enabled
